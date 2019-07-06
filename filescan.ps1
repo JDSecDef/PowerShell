@@ -1,4 +1,4 @@
-    # This script scans for file names using different search criteria. 
+# This script scans for file names using different search criteria. 
 # NOTE - Scanning a large amount of files can take a long time.
 
 $usersearch = @()

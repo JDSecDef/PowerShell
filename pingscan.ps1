@@ -1,21 +1,27 @@
-﻿# This script pings an IP Range to check if hosts are up 
+# This script pings an IP Range to check if hosts are up 
 
-$subnet = Read-Host -prompt "`nEnter IP block"
-[int]$ipstart = Read-Host -Prompt "Enter the start IP address"
-[int]$ipend = Read-Host -Prompt "Enter the End IP address"
-[int]$delay = 500
+$ipaddress = @()
+$enterip = Read-Host "`nEnter IP Address Range to scan"
+$seperator = ".""[""-"
+$enterip | foreach {
+    $ipaddress = $_.split($seperator)
+    }
 
-Write-Host ("`nPinging IP Range $subnet" + (".") + "$ipstart" + ("-") + "$ipend") -ForegroundColor Yellow
+$ipaddress1 = $ipaddress[0,1,2,3] -join '.'
+[int]$iprangestart = $ipaddress[4]
+[int]$iprangeend = $ipaddress[5] -replace '[[\]"]' 
+
+Write-Host ("`nPinging IP Range $ipaddress1" + "$iprangestart" + ("-") + "$iprangeend") -ForegroundColor Yellow
 
 Measure-Command {
-while ($ipstart -le $ipend) {
-$ip = $subnet + (".") + $ipstart
+while ($iprangestart -le $iprangeend) {
+$ip = $ipaddress1 + $iprangestart
 $test = Test-Connection -ComputerName $ip -count 1 -Quiet -ErrorAction SilentlyContinue 
     if ($test -eq $true) {
     write-host "$ip Host is UP" -ForegroundColor Green }
     else {
     write-host "$ip Host did not respond" -ForegroundColor Red
     }
-$ipstart++
+$iprangestart++
 } 
 } | select -Property TotalMinutes, TotalSeconds

@@ -1,27 +1,26 @@
 # This script pings an IP Range to check if hosts are up 
 
-$ipaddress = @()
-$enterip = Read-Host "`nEnter IP Address Range to scan"
-$seperator = ".""[""-"
-$enterip | foreach {
-    $ipaddress = $_.split($seperator)
+$IPAddress = Read-Host "`nEnter IP Address Range to scan"
+$Seperator = ".""[""-"
+$IPAddress | ForEach-Object {
+    $IPAddress = $_.split($Seperator)
     }
 
-$ipaddress1 = $ipaddress[0,1,2,3] -join '.'
-[int]$iprangestart = $ipaddress[4]
-[int]$iprangeend = $ipaddress[5] -replace '[[\]"]' 
+$FormatIPAddress = $IPAddress[0,1,2,3] -join '.'
+[int]$IPRangeStart = $IPAddress[4]
+[int]$IPRangeEnd = $IPAddress[5] -replace '[[\]"]' 
 
-Write-Host ("`nPinging IP Range $ipaddress1" + "$iprangestart" + ("-") + "$iprangeend") -ForegroundColor Yellow
+Write-Host ("`nPinging IP Range $FormatIPAddress" + "$IPRangeStart" + ("-") + "$IPRangeEnd") -ForegroundColor Yellow
 
 Measure-Command {
-while ($iprangestart -le $iprangeend) {
-$ip = $ipaddress1 + $iprangestart
-$test = Test-Connection -ComputerName $ip -count 1 -Quiet -ErrorAction SilentlyContinue 
-    if ($test -eq $true) {
-    write-host "$ip Host is UP" -ForegroundColor Green }
+while ($IPRangeStart -le $IPRangeEnd) {
+$IP = $FormatIPAddress + $IPRangeStart
+$PingIP = Test-Connection -ComputerName $IP -count 1 -Quiet -ErrorAction SilentlyContinue 
+    if ($PingIP -eq $true) {
+    write-host "$IP Host is UP" -ForegroundColor Green }
     else {
-    write-host "$ip Host did not respond" -ForegroundColor Red
+    write-host "$IP Host did not respond" -ForegroundColor Red
     }
-$iprangestart++
+$IPRangeStart++
 } 
-} | select -Property TotalMinutes, TotalSeconds
+} | Select-Object -Property TotalMinutes, TotalSeconds

@@ -9,7 +9,7 @@ $IPAddress | ForEach-Object {
 $FormatIPAddress = $IPAddress[0,1,2,3] -join '.'
 [int]$IPRangeStart = $IPAddress[4]
 [int]$IPRangeEnd = $IPAddress[5] -replace '[[\]"]' 
-#This is a GitHub test
+
 Write-Host ("`nPinging IP Range $FormatIPAddress" + "$IPRangeStart" + ("-") + "$IPRangeEnd") -ForegroundColor Yellow
 
 Measure-Command {

@@ -11,7 +11,7 @@ $FormatIPAddress = $IPAddress[0,1,2,3] -join '.'
 [int]$IPRangeEnd = $IPAddress[5] -replace '[[\]"]' 
 
 Write-Host ("`nPinging IP Range $FormatIPAddress" + "$IPRangeStart" + ("-") + "$IPRangeEnd") -ForegroundColor Yellow
-#This is another GitHub Test
+
 Measure-Command {
 while ($IPRangeStart -le $IPRangeEnd) {
 $IP = $FormatIPAddress + $IPRangeStart

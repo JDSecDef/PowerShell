@@ -21,12 +21,10 @@
 param (
     [Parameter(Mandatory=$true,
     HelpMessage="Example - 10.0.0.[1-255] or 10.0.0.1")]
-    [String[]]
     $IPAddress
 )
 
 $InformationPreference = "Continue"
-$Seperator = ".""[""-"
 
 function PingIPRange {
     Measure-Command {
@@ -57,16 +55,18 @@ function PingIP {
     } | Select-Object -Property @{label='Seconds';expression={$_.TotalSeconds}}
 }
 
+# This needs commenting. Split takes a delimited string and makes an array from it. 
+$Seperator = ".""[""-"
 $IPAddress | ForEach-Object {
     $IPAddress = $_.split($Seperator)
 }
 
-if ($IPAddress[5] -match "\]") { 
+if ($IPAddress -match "^\d{1,3}\]$") { 
     $FormatIPAddress = $IPAddress[0,1,2,3] -join '.'
     [int]$IPRangeStart = $IPAddress[4]
-    [int]$IPRangeEnd = $IPAddress[5] -replace '[[\]"]' 
+    [int]$IPRangeEnd = $IPAddress[5] -replace "]","" 
     PingIPRange
-} if ($IPAddress[3] -match "^\d+$")  {
+} if ($IPAddress[3] -match "^\d{1,3}$")  {
     $FormatIPAddress = $IPAddress[0,1,2,3] -join '.' 
     PingIP
 }

@@ -20,8 +20,8 @@
 [CmdletBinding()]
 param (
     [Parameter(Mandatory=$true,
-    HelpMessage="Example - 10.0.0.[1-255] or 10.0.0.1")]
-    $IPAddress
+    HelpMessage="Example - 10.0.0.[1-255], 10.0.0.1 or 10.0.0.0/24")]
+    [string]$IPAddress
 )
 
 $InformationPreference = "Continue"
@@ -44,9 +44,9 @@ function PingIPRange {
 
 function PingIP {
     Measure-Command {
-    $IP = $FormatIPAddress
-    Write-Information ("`nPinging IP Address $FormatIPAddress")
-    $PingIP = Test-Connection -ComputerName $IP -count 1 -Quiet -ErrorAction SilentlyContinue 
+    $IP = $IPAddress
+    Write-Information ("`nPinging IP Address $IPAddress")
+    $PingIP = Test-Connection -ComputerName $IP -count 1 -Quiet -ErrorAction SilentlyContinue
     if ($PingIP -eq $true) {
         Write-Information "$IP Host is UP" }
     else {
@@ -56,17 +56,16 @@ function PingIP {
 }
 
 # This needs commenting. Split takes a delimited string and makes an array from it. 
-$Seperator = ".""[""-"
-$IPAddress | ForEach-Object {
-    $IPAddress = $_.split($Seperator)
-}
-
-if ($IPAddress -match "^\d{1,3}\]$") { 
-    $FormatIPAddress = $IPAddress[0,1,2,3] -join '.'
-    [int]$IPRangeStart = $IPAddress[4]
-    [int]$IPRangeEnd = $IPAddress[5] -replace "]","" 
+$Seperator = "[""-""]"
+if ($IPAddress -match "\]$") { 
+    $IPAddress | ForEach-Object {
+        $IPSeperate = $_.split($Seperator)
+    }
+    [string]$FormatIPAddress = $IPSeperate[0]
+    [int]$IPRangeStart = $IPSeperate[1]
+    [int]$IPRangeEnd = $IPSeperate[2] 
     PingIPRange
-} if ($IPAddress[3] -match "^\d{1,3}$")  {
-    $FormatIPAddress = $IPAddress[0,1,2,3] -join '.' 
+}
+if ($IPAddress -match "\d{1,3}$")  {
     PingIP
 }

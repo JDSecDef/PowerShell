@@ -19,8 +19,9 @@
 
 [CmdletBinding()]
 param (
-    [Parameter(Mandatory=$true,
-    HelpMessage="Example - 10.0.0.[1-255], 10.0.0.1 or 10.0.0.0/24")]
+    [Parameter(Mandatory = $true,
+        HelpMessage = "Example - 10.0.0.[1-255], 10.0.0.1 or 10.0.0.0/24")]
+    [Alias('ping')]
     [string]$IPAddress
 )
 
@@ -28,17 +29,18 @@ $InformationPreference = "Continue"
 
 function PingIPRange {
     Measure-Command {
-    Write-Information ("`nPinging IP Range $FormatIPAddress" + "$IPRangeStart" + ("-") + "$IPRangeEnd")
-    while ($IPRangeStart -le $IPRangeEnd) {
-        $IP = $FormatIPAddress + $IPRangeStart
-        $PingIP = Test-Connection -ComputerName $IP -count 1 -Quiet -ErrorAction SilentlyContinue 
-        if ($PingIP -eq $true) {
-            Write-Information "$IP Host is UP" }
-        else {
-            Write-Information "$IP Host did not respond"
-        }
-        $IPRangeStart++
-    } 
+        Write-Information ("`nPinging IP Range $FormatIPAddress" + "$IPRangeStart" + ("-") + "$IPRangeEnd")
+        while ($IPRangeStart -le $IPRangeEnd) {
+            $IP = $FormatIPAddress + $IPRangeStart
+            $PingIP = Test-Connection -ComputerName $IP -count 1 -Quiet -ErrorAction SilentlyContinue 
+            if ($PingIP -eq $true) {
+                Write-Information "$IP Host is UP" 
+            }
+            else {
+                Write-Information "$IP Host did not respond"
+            }
+            $IPRangeStart++
+        } 
     } | Select-Object -Property TotalMinutes, TotalSeconds
 }
 

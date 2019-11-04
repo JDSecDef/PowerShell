@@ -32,8 +32,8 @@ function PingIPRange {
         Write-Information ("`nPinging IP Range $FormatIPAddress" + "$IPRangeStart" + ("-") + "$IPRangeEnd")
         while ($IPRangeStart -le $IPRangeEnd) {
             $IP = $FormatIPAddress + $IPRangeStart
-            $PingIP = Test-Connection -ComputerName $IP -count 1 -Quiet -ErrorAction SilentlyContinue 
-            if ($PingIP -eq $true) {
+            $PingIP = Test-Connection -ComputerName $IP -count 1 -ErrorAction SilentlyContinue 
+            if ($PingIP.StatusCode -eq 0) {
                 Write-Information "$IP Host is UP" 
             }
             else {
@@ -44,18 +44,19 @@ function PingIPRange {
     } | Select-Object -Property TotalMinutes, TotalSeconds
 }
 
-function PingIP {
+function PingIP { 
     Measure-Command {
-    $IP = $IPAddress
-    Write-Information ("`nPinging IP Address $IPAddress")
-    $PingIP = Test-Connection -ComputerName $IP -count 1 -Quiet -ErrorAction SilentlyContinue
-    if ($PingIP -eq $true) {
-        Write-Information "$IP Host is UP" }
-    else {
-        Write-Information "$IP Host did not respond"
-    }
-    } | Select-Object -Property @{label='Seconds';expression={$_.TotalSeconds}}
-}
+        $IP = $IPAddress
+        Write-Information ("`nPinging IP Address $IPAddress")
+        $PingIP = Test-Connection -ComputerName $IP -count 1 -ErrorAction SilentlyContinue
+        if ($PingIP.StatusCode -eq 0) {
+            Write-Information "$IP Host is UP" 
+        }
+        else { 
+            Write-Information "$IP Host did not respond"
+        }
+    } | Select-Object -Property @{label = 'Seconds'; expression = { $_.TotalSeconds } }
+} 
 
 # This needs commenting. Split takes a delimited string and makes an array from it. 
 $Seperator = "[""-""]"

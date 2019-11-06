@@ -28,34 +28,54 @@ param (
 
 $InformationPreference = "Continue"
 
+    [int]$Timeout = 100
+    #[switch]$resolve = $true
+    #[int]$TTL = 128
+    #[switch]$DontFragment = $false
+    #[int]$buffersize = 32
+    #$options = new-object system.net.networkinformation.pingoptions
+    #$options.TTL = $TTL
+    #$options.DontFragment = $DontFragment
+    #$buffer=([system.text.encoding]::ASCII).getbytes("a"*$buffersize)	
+    $Ping = new-object system.net.networkinformation.ping
+
 function PingIPRange {
-    Measure-Command {
-        Write-Information ("`nPinging IP Range $FormatIPAddress" + "$IPRangeStart" + ("-") + "$IPRangeEnd")
-        while ($IPRangeStart -le $IPRangeEnd) {
-            $IP = $FormatIPAddress + $IPRangeStart
-            $PingIP = Test-Connection -ComputerName $IP -count 1 -ErrorAction SilentlyContinue 
-            if ($PingIP.StatusCode -eq 0) {
-                Write-Information "$IP Host is UP" 
-            }
-            else {
-                Write-Information "$IP Host did not respond"
-            }
-            $IPRangeStart++
-        } 
-    } | Select-Object -Property TotalMinutes, TotalSeconds
+    Write-Information ("`nPinging IP Range $FormatIPAddress" + "$IPRangeStart" + ("-") + "$IPRangeEnd")
+    while ($IPRangeStart -le $IPRangeEnd) {
+        $IP = $FormatIPAddress + $IPRangeStart
+        #$PingIP = Test-Connection -ComputerName $IP -count 1 -ErrorAction SilentlyContinue 
+        $PingIP = $Ping.Send($IP,$Timeout)
+        #$buffer,$options)
+        switch ($PingIP.Status) {
+            "Success" { $Status = "Host is UP" }
+            Default { $Status = "Host did not respond" }
+        }
+        $Props = [PSCustomObject]@{
+            'IPAddress' = $IP
+            'Response'  = $Status
+        }
+        $IPRangeStart++
+        $Obj = [PSCustomObject]$Props 
+        Write-Output $Obj
+    } 
 }
 
 function PingIP { 
-    Measure-Command {
-        Write-Information ("`nPinging IP Address $IPAddress")
-        $PingIP = Test-Connection -ComputerName $IPAddress -count 1 -ErrorAction SilentlyContinue
-        if ($PingIP.StatusCode -eq 0) { $PingIP | Select-Object -Property @{Name='IPAddress';expression={$PingIP.Address}}
-            Write-Information "$IPAddress Host is UP" 
-        }
-        else { 
-            Write-Information "$IPAddress Host did not respond"
-        }
-    } | Select-Object -Property @{label = 'Seconds'; expression = { $_.TotalSeconds } }
+    Write-Information ("`nPinging IP Address $IPAddress")
+    #$Test = Test-Connection.
+    $PingIP = $Ping.Send($IPAddress,$Timeout)
+    #$buffer,$options)
+    #$PingIP = Test-Connection -ComputerName $IPAddress -count 1 -ErrorAction SilentlyContinue
+    switch ($PingIP.Status) {
+        "Success" { $Status = "Host is UP" }
+        Default { $Status = "Host did not respond" }
+    }
+    $Props = [PSCustomObject]@{
+        'IPAddress' = $IPAddress
+        'Response'  = $Status
+    }
+    $Obj = [PSCustomObject]$Props 
+    Write-Output $Obj
 } 
 
 # This needs commenting. Split takes a delimited string and makes an array from it. 

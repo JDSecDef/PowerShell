@@ -24,6 +24,9 @@ param (
         HelpMessage = "Example - 10.0.0.[1-255], 10.0.0.1 or 10.0.0.0/24")]
     [Alias('ping')]
     [string]$IPAddress
+    # CIDR input parameter
+    # Computer Name parameter
+    # TODO
 )
 
 $InformationPreference = "Continue"
@@ -37,42 +40,43 @@ $InformationPreference = "Continue"
     #$options.TTL = $TTL
     #$options.DontFragment = $DontFragment
     #$buffer=([system.text.encoding]::ASCII).getbytes("a"*$buffersize)	
-    $Ping = new-object system.net.networkinformation.ping
+    $Ping = New-Object system.net.networkinformation.ping
 
 function PingIPRange {
     Write-Information ("`nPinging IP Range $FormatIPAddress" + "$IPRangeStart" + ("-") + "$IPRangeEnd")
     while ($IPRangeStart -le $IPRangeEnd) {
         $IP = $FormatIPAddress + $IPRangeStart
-        #$PingIP = Test-Connection -ComputerName $IP -count 1 -ErrorAction SilentlyContinue 
         $PingIP = $Ping.Send($IP,$Timeout)
         #$buffer,$options)
         switch ($PingIP.Status) {
             "Success" { $Status = "Host is UP" }
-            Default { $Status = "Host did not respond" }
+            "TimedOut" { $Status = "Host is Unreachable" }
+            Default { $Status = "Host is Unreachable" }
         }
         $Props = [PSCustomObject]@{
-            'IPAddress' = $IP
+            'ComputerHost' = $IP
             'Response'  = $Status
+            "ResponseTimeMS" = $PingIP.RoundtripTime
         }
         $IPRangeStart++
-        $Obj = [PSCustomObject]$Props 
+        $Obj = [PSCustomObject]$Props
         Write-Output $Obj
     } 
 }
 
 function PingIP { 
-    Write-Information ("`nPinging IP Address $IPAddress")
-    #$Test = Test-Connection.
     $PingIP = $Ping.Send($IPAddress,$Timeout)
-    #$buffer,$options)
-    #$PingIP = Test-Connection -ComputerName $IPAddress -count 1 -ErrorAction SilentlyContinue
+    Write-Information ("`nPinging IP Address " + $PingIP.Address)
     switch ($PingIP.Status) {
         "Success" { $Status = "Host is UP" }
-        Default { $Status = "Host did not respond" }
+        "TimedOut" { $Status = "Host is Unreachable" }
+        Default { $Status = "Host is Unreachable" }
+     
     }
     $Props = [PSCustomObject]@{
-        'IPAddress' = $IPAddress
+        'Host' = $PingIP.Address
         'Response'  = $Status
+        "ResponseTime" = $PingIP.RoundtripTime
     }
     $Obj = [PSCustomObject]$Props 
     Write-Output $Obj

@@ -13,7 +13,6 @@ function Test-IPRange {
     Inputs (if any)
 .OUTPUTS
     Output (if any)
-    etsts
 .NOTES
     Version     : 1.0.0
     Last Updated: 9 November 2019
@@ -60,7 +59,7 @@ function Test-IPRange {
                 Default { $Status = "Host is Unreachable" }
             }
             $Props = [PSCustomObject]@{
-                'ComputerHost'   = $IP
+                'TargetHost'         = $IP
                 'Response'       = $Status
                 "ResponseTimeMS" = $PingIP.RoundtripTime
             }

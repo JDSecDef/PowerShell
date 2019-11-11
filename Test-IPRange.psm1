@@ -6,6 +6,8 @@ function Test-IPRange {
     Long description
 .PARAMETER IPAddress
     Provide an IP Address.
+.PARAMETER Timeout
+    Provide a ping response timeout. 
 .EXAMPLE
     PS C:\> pingscan.ps1 10.0.0.[1-255]
     This will ping this host range. Explanation of what the example does
@@ -59,7 +61,7 @@ function Test-IPRange {
                 Default { $Status = "Host is Unreachable" }
             }
             $Props = [PSCustomObject]@{
-                'TargetHost'         = $IP
+                'TargetHost'     = $IP
                 'Response'       = $Status
                 "ResponseTimeMS" = $PingIP.RoundtripTime
             }

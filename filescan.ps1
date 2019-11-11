@@ -46,7 +46,7 @@ $searchresults = Get-ChildItem $scanlocation -ErrorAction SilentlyContinue -Recu
 }
 
 # Show search results. 
-if ($searchresults -eq $null) {
+if ($null -eq $searchresults) {
     Write-Host "`nNo Search Results" -ForegroundColor Red
 } else {
     Write-Host "`nSearch Results`n" -ForegroundColor Red

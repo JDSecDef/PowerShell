@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 function Test-IPRange {
     <#
  .SYNOPSIS

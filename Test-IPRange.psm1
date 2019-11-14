@@ -4,7 +4,7 @@ function Test-IPRange {
     Ping IP addresses to check if hosts are responsive. 
 .DESCRIPTION
     Long description
-.PARAMETER IPAddress
+.PARAMETER IPRange
     Provide an IP Address.
 .PARAMETER Timeout
     Provide a ping response timeout. 
@@ -19,18 +19,21 @@ function Test-IPRange {
     Version     : 1.0.0
     Last Updated: 9 November 2019
     #>
+    
     [CmdletBinding()]
     param (
         [Parameter(ValueFromPipeLine = $true,
             Mandatory = $true,
             HelpMessage = "Example - 10.0.0.[1-255], 10.0.0.1 or 10.0.0.0/24")]
         [Alias('Ping')]
-        [String]$IPAddress,
+        [String]$IPRange,
         [Int]$Timeout = 100
+        # Validate parameters
         # CIDR input parameter
         # Computer Name parameter
         # TODO
     )
+    
     BEGIN {
         $InformationPreference = "Continue"
         $Ping = New-Object system.net.networkinformation.ping
@@ -43,32 +46,35 @@ function Test-IPRange {
         #$options.TTL = $TTL
         #$options.DontFragment = $DontFragment
         #$buffer=([system.text.encoding]::ASCII).getbytes("a"*$buffersize)	
-    }
+    } # Begin
+
     PROCESS {
-        $IPAddress | ForEach-Object {
+        Write-Verbose 'Splitting IP address into array'
+        $IPRange | ForEach-Object {
             $IPSplit = $_.split($IPSeperator)
-        }
-        [string]$FormatIPAddress = $IPSplit[0]
+        } # Foreach
+        [string]$FormatIPRange = $IPSplit[0]
         [int]$IPRangeStart = $IPSplit[1]
         [int]$IPRangeEnd = $IPSplit[2] 
-        Write-Host ("`nPinging IP Range $FormatIPAddress" + "$IPRangeStart" + ("-") + "$IPRangeEnd")
+        Write-Information ("`nPinging IP Range $FormatIPRange" + "$IPRangeStart" + ("-") + "$IPRangeEnd")
         while ($IPRangeStart -le $IPRangeEnd) {
-            $IP = $FormatIPAddress + $IPRangeStart
+            $IP = $FormatIPRange + $IPRangeStart
+            Write-Verbose "Sending Ping to $IP"
             $PingIP = $Ping.Send($IP, $Timeout)
             switch ($PingIP.Status) {
-                "Success" { $Status = "Host is UP" }
-                "TimedOut" { $Status = "Host is Unreachable" }
-                Default { $Status = "Host is Unreachable" }
-            }
+                'Success' { $Status = 'Host is UP' }
+                'TimedOut' { $Status = 'Host is Unreachable' }
+                Default { $Status = 'Host is Unreachable' }
+            } # Switch
             $Props = [PSCustomObject]@{
                 'TargetHost'     = $IP
                 'Response'       = $Status
-                "ResponseTimeMS" = $PingIP.RoundtripTime
-            }
+                'ResponseTimeMS' = $PingIP.RoundtripTime
+            } # PSCustomObject
             $IPRangeStart++
             $Obj = [PSCustomObject]$Props
             Write-Output $Obj
-        } 
-    }
+        } # While  
+    } # Process 
     END { }
-}
+} # Function

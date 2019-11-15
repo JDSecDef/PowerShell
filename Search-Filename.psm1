@@ -41,19 +41,22 @@ function Search-Filename {
             Write-Verbose "Testing $FilePath is accessible"
             If (Test-Path $FilePath) {
                 Write-Verbose "$FilePath accessible"
+                Write-Verbose "Searching $FilePath for files matching $SearchWords"
                 $SearchResults = Get-ChildItem $FilePath -Recurse -include $SearchWords | 
-                Select-Object -Property @{Name='Directory';expression={$_.DirectoryName}},
-                                        @{Name='Filename';expression={$_.Name}},
-                                        @{Name="Owner";expression={(Get-ACL $_.Fullname).Owner}},
-                                        @{Name='Size(bytes)';expression={[Math]::Round($_.Length,2)}}
-            } Else {
-                Write-Information "$FilePath does not exist"
+                Select-Object -Property @{Name = 'Directory'; expression = { $_.DirectoryName } },
+                                        @{Name = 'Filename'; expression = { $_.Name } },
+                                        @{Name = "Owner"; expression = { (Get-ACL $_.Fullname).Owner } },
+                                        @{Name = 'Size(bytes)'; expression = { [Math]::Round($_.Length, 2) } }
             } # If
-        } catch {
-            # Nothing
-        } Finally {
+            Else {
+                Write-Information "$FilePath does not exist"
+            } # Else
+        } # Try
+        catch {
+        } # Catch
+        Finally {
             Write-Output $SearchResults
-        }
+        } # Finally 
     } # Process
     End {}
 } # Function

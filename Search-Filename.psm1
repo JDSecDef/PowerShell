@@ -1,16 +1,20 @@
 function Search-Filename {
     <#
     .SYNOPSIS
-    Search files for matching key words. 
+    Search for files using multiple search words.   
     
     .DESCRIPTION
-    Long description
+    This command searches for files using one or more search words. It allows the use of wildcards (*)
+    and stringing together multiple search words in a single search. The command must be run as a user
+    who has access to the files being searched. 
     
     .PARAMETER Path
-    Provide a filepath to search.
+    Provide a folder path or fileshare to search. 
 
-    .PARAMETER Keyword
-    Provide one or more keywords to use as the search criteria. 
+    .PARAMETER SearchWord
+    Provide one or more search words to use as the search criteria. If no search words are provided than
+    the default search words will be used - "*password*","*protected*","*.mp4","*.exe","*dvd*","*secret*",
+    "*.bat","*.kbdx","*.ps1".
 
     .EXAMPLE
     PS C:\> Search-Filename -Path C:\ -Keywords "*.txt","*.csv","*sensitive*"'
@@ -18,7 +22,7 @@ function Search-Filename {
     
     .NOTES
     Version     : 1.0.0
-    Last Updated: 15 November 2019
+    Last Updated: 18 November 2019
     #>
     
     [CmdletBinding()]
@@ -28,7 +32,7 @@ function Search-Filename {
                    HelpMessage = 'Example - Search-Filename -Path C:\ -Keywords "*.txt","*.csv","*sensitive*"')]
         [Alias('Path')]
         [String]$FilePath,
-        [Alias('Keyword')]
+        [Alias('SearchWord')]
         [String[]]$SearchWords = ("*password*","*protected*","*.mp4","*.exe","*dvd*","*secret*","*.bat","*.kbdx","*.ps1")
     )
     

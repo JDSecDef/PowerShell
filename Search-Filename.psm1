@@ -4,7 +4,7 @@ function Search-Filename {
     Search files for matching key words. 
     
     .DESCRIPTION
-    Long descriptionasasa
+    Long description
     
     .PARAMETER Path
     Provide a filepath to search.

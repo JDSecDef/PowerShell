@@ -1,0 +1,56 @@
+{
+    "JLabTest-Subnet": {
+            "Name": "JLab-Subnet",
+            "AddressPrefix": "10.0.0.0/24"
+        },
+    "JLabTest-VNet": 
+            {
+            "Name": "JLab-VNet",
+            "ResourceGroupName": "JLab-RG",
+            "Location": "australiaeast",
+            "AddressPrefix": "10.0.0.0/24"
+            },
+    "JLab-PubIP":
+        {
+            "Name": "JLab-PubIP",
+            "ResourceGroupName": "JLab-RG",
+            "AllocationMethod": "Dynamic",
+            "Location": "australiaeast"
+        },
+    "JLab-VNIC":
+        {
+            "Name": "JLab-VNIC",
+            "ResourceGroupName": "JLab-RG",
+            "Location": "australiaeast",
+            "SubnetID": "$VNET.Subnets[0].ID",
+            "PublicIPAddressID": "$PublicIP.ID"
+        },
+    "JLab-StorageAccount":
+        {
+            "Name": "JLab-StorageAccount",
+            "ResourceGroupName": "JLab-RG",
+            "Type": "Standard_LRS",
+            "Location": "australiaeast"
+        },
+    "JLab-VMConfig":
+        {
+            "VMName": "JLab-DC1",
+            "VMSize": "Standard_B1ms"
+        },
+    "JLab-VMParameters":
+        {
+            "Windows": "$true",
+            "ComputerName": "DC1",
+            "Credential": "(Get-Credential -Message 'Type the name and password of the local administrator account.')",
+            "EnableAutoUpdate": "$true",
+            "VM": "$VMConfig"
+        },
+    "JLab-ImageParamaters":
+        {
+            "PublisherName": "MicrosoftWindowsServer",
+            "Version": "Latest",
+            "Skus": "2012-R2-Datacenter",
+            "VM": "$VM",
+            "Offer": "$Offer.Offer"
+        }
+}

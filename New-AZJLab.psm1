@@ -70,7 +70,6 @@ function New-AZJLab {
                 ResourceGroupName = $Key.ResourceGroupName
                 Type              = $Key.Type
                 Location          = $Key.Location
-                #test
             }
         }
     } #BEGIN 

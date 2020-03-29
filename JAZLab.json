@@ -1,9 +1,9 @@
 {
-    "JLabTest-Subnet": {
+    "JLab-Subnet": {
             "Name": "JLab-Subnet",
             "AddressPrefix": "10.0.0.0/24"
         },
-    "JLabTest-VNet": 
+    "JLab-VNet": 
             {
             "Name": "JLab-VNet",
             "ResourceGroupName": "JLab-RG",
@@ -41,7 +41,7 @@
         {
             "Windows": "$true",
             "ComputerName": "DC1",
-            "Credential": "(Get-Credential -Message 'Type the name and password of the local administrator account.')",
+            "Credential": "(Get-Credential -Message 'Enter the name and password of the local administrator account.')",
             "EnableAutoUpdate": "$true",
             "VM": "$VMConfig"
         },

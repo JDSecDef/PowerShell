@@ -25,43 +25,69 @@ function New-AZJLab {
     [CmdletBinding()]
     param (
         [Parameter(ValueFromPipeline = $true,
-        Mandatory = $true)]
-        [String]$json1
+        Mandatory = $true,
+        HelpMessage = 'Please provide a JSON file')]
+        [String]$FilePathJson
     )
     
     BEGIN {
         $InformationPreference = "Continue"
-        $JsonFile = Get-Content C:\Temp\Untitled-1.json | ConvertFrom-Json
-        $SubnetParameters = @{}
-    } #BEGIN 
-
-    PROCESS {
+        $JsonFile = Get-Content $FilePathJson | ConvertFrom-Json
         $SubnetParameters = $JsonFile.'JLab-Subnet' | ForEach-Object {
             $Key = $_ 
             [hashtable] @{Name = $Key.Name 
-            AddressPrefix  = $Key.AddressPrefix}
+                AddressPrefix  = $Key.AddressPrefix
+            }
         }
         $VNetParameters = $JsonFile.'JLab-VNet' | ForEach-Object {
             $Key = $_
-            [hashtable] @{Name = $Key.Name
+            [hashtable] @{Name    = $Key.Name
                 ResourceGroupName = $Key.ResourceGroupName
-                Location = $Key.Location
-                AddressPrefix = $Key.AddressPrefix
+                Location          = $Key.Location
+                AddressPrefix     = $Key.AddressPrefix
             }
+        }
         $PublicIPParameters = $JsonFile.'JLab-PubIP' | ForEach-Object {
             $Key = $_
-            [hashtable] @{Name = $key.Name
+            [hashtable] @{Name    = $Key.Name
                 ResourceGroupName = $Key.ResourceGroupName
-                AllocationMethod = $key.AllocationMethod
-                Location = $key.Location}
+                AllocationMethod  = $key.AllocationMethod
+                Location          = $key.Location
+            }
         }
+        $VNICParameters = $JsonFile.'JLab-VNIC' | ForEach-Object {
+            $Key = $_
+            [hashtable] @{Name    = $Key.Name
+                ResourceGroupName = $Key.ResourceGroupName
+                Location          = $Key.Location
+                SubnetID          = $Key.SubnetID
+                PublicIPAddressID = $Key.PublicIPAddressID
+            }
         }
+        $StorageAccountParameters = $JsonFile.'JLab-StorageAccount' | ForEach-Object {
+            $Key = $_
+            [hashtable] @{Name    = $Key.name
+                ResourceGroupName = $Key.ResourceGroupName
+                Type              = $Key.Type
+                Location          = $Key.Location
+            }
+        }
+    } #BEGIN 
+
+    PROCESS {
+        # Check for connection to azure. 
+        # Check to see if Resource Group already exists.
+        # Only one VM should have a Public IP. 
         Write-Information '###$SubnetParameters##'
         $SubnetParameters
         Write-Information '###$VnetParamters###'
         $VNetParameters
         Write-Information '###$PublicIPParamters###'
-        $PublicIPParameters 
+        $PublicIPParameters  
+        Write-Information '###$VNICParameters###'
+        $VNICParameters
+        Write-Information '###$StorageAccountParameters###'
+        $StorageAccountParameters
     } #PROCESS
     END {}
 } #Function

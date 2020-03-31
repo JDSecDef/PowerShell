@@ -21,7 +21,6 @@ function New-AZJLab {
 .FUNCTIONALITY
     The functionality that best describes this cmdlet
 #>
-
     [CmdletBinding()]
     param (
         [Parameter(ValueFromPipeline = $true,
@@ -31,8 +30,18 @@ function New-AZJLab {
     )
     
     BEGIN {
+        Set-Item Env:\SuppressAzurePowerShellBreakingChangeWarnings "true"
         $InformationPreference = "Continue"
+        $Connection = Get-AzContext
+        $ResouceGroupName = Get-AzResourceGroup
         $JsonFile = Get-Content $FilePathJson | ConvertFrom-Json
+        $RGandLocation = $JsonFile.'JLab-RGandLocation' | ForEach-Object {
+            $Key = $_ 
+            [hashtable] @{Name = $Key.Name
+                ResourceGroupName = $Key.ResourceGroupName
+                Location = $Key.Location 
+            }
+        }
         $SubnetParameters = $JsonFile.'JLab-Subnet' | ForEach-Object {
             $Key = $_ 
             [hashtable] @{Name = $Key.Name 
@@ -66,7 +75,7 @@ function New-AZJLab {
         }
         $StorageAccountParameters = $JsonFile.'JLab-StorageAccount' | ForEach-Object {
             $Key = $_
-            [hashtable] @{Name    = $Key.name
+            [hashtable] @{Name    = $Key.Name
                 ResourceGroupName = $Key.ResourceGroupName
                 Type              = $Key.Type
                 Location          = $Key.Location
@@ -75,21 +84,47 @@ function New-AZJLab {
     } #BEGIN 
 
     PROCESS {
-        # Check for connection to azure. 
+        try {
+            if ($null -eq $Connection) {
+                Connect-AzAccount -ErrorAction Stop
+            }
+            else {
+                Write-Verbose "$($Connection.Account.ID) is authenticated to Azure." 
+                Start-Sleep -Seconds 1
+            }
+            if ($ResouceGroupName.ResourceGroupName -contains $RGandLocation.ResourceGroupName) {
+                Write-Verbose "$($RGandLocation.ResourceGroupName) Resource Group already exists."
+                Start-Sleep -Seconds 1
+                #$NewSubnet = New-AzVirtualNetworkSubnetConfig @SubnetParameters -Verbose
+            }
+            else {
+                Write-Verbose "$($RGandLocation.ResourceGroupName) will be created. in $($RGandLocation.Location)"
+                New-AzResourceGroup -Name $RGandLocation.ResourceGroupName -Location $RGandLocation.Location
+            }
         # Check to see if Resource Group already exists.
-        # Only one VM should have a Public IP. 
-        Write-Information '###$SubnetParameters##'
-        $SubnetParameters
-        Write-Information '###$VnetParamters###'
-        $VNetParameters
-        Write-Information '###$PublicIPParamters###'
-        $PublicIPParameters  
-        Write-Information '###$VNICParameters###'
-        $VNICParameters
-        Write-Information '###$StorageAccountParameters###'
-        $StorageAccountParameters
+        # Only one VM should have a Public IP.
+        #$ResouceGroupName.ResourceGroupName 
+        #Write-Information '###$RGandLocation###'
+        #$RGandLocation.ResourceGroupName
+        #Write-Information '###$SubnetParameters##'
+        #$SubnetParameters
+        #Write-Information '###$VnetParamters###'
+        #$VNetParameters
+        #Write-Information '###$PublicIPParamters###'
+        #$PublicIPParameters  
+        #Write-Information '###$VNICParameters###'
+        #$VNICParameters
+        #Write-Information '###$StorageAccountParameters###'
+        #$StorageAccountParameters
+    } # try
+        catch { 
+            [Microsoft.Azure.Commands.Profile.ConnectAzureRmAccountCommand]
+            Write-Information "`nYou failed to authenticate to Azure."
+        } # catch
+        finally {
+        } # finally
     } #PROCESS
-    END {}
+    END { }
 } #Function
 
 <## Create a Resource Group

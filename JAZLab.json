@@ -1,4 +1,8 @@
 {
+    "JLab-RGandLocation": {
+        "ResourceGroupName": "JLab-RG",
+        "Location": "australiaeast"
+    },
     "JLab-Subnet": {
             "Name": "JLab-Subnet",
             "AddressPrefix": "10.0.0.0/24"

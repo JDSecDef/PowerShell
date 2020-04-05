@@ -25,9 +25,7 @@
         {
             "Name": "JLab-VNIC",
             "ResourceGroupName": "JLab-RG",
-            "Location": "australiaeast",
-            "SubnetID": "$VNET.Subnets[0].ID",
-            "PublicIPAddressID": "$PublicIP.ID"
+            "Location": "australiaeast"
         },
     "JLab-StorageAccount":
         {

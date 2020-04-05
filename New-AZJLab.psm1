@@ -69,7 +69,7 @@ function New-AZJLab {
             [hashtable] @{Name    = $Key.Name
                 ResourceGroupName = $Key.ResourceGroupName
                 Location          = $Key.Location
-                SubnetID          = $Key.SubnetID
+                # SubnetID          = 
                 PublicIPAddressID = $Key.PublicIPAddressID
             }
         }
@@ -98,9 +98,18 @@ function New-AZJLab {
                 #$NewSubnet = New-AzVirtualNetworkSubnetConfig @SubnetParameters -Verbose
             }
             else {
-                Write-Verbose "$($RGandLocation.ResourceGroupName) will be created. in $($RGandLocation.Location)"
+                Write-Verbose "$($RGandLocation.ResourceGroupName) will be created in $($RGandLocation.Location)"
                 New-AzResourceGroup -Name $RGandLocation.ResourceGroupName -Location $RGandLocation.Location
             }
+            $NewSubnet = New-AzVirtualNetworkSubnetConfig @SubnetParameters -Verbose
+            $VNetParameters.Subnet = $NewSubnet
+            $NewVNet = New-AzVirtualNetwork @VNetParameters -Verbose
+            Get-AzVirtualNetworkSubnetConfig -name $SubnetParameters.name -VirtualNetwork $NewVNet -Verbose
+            #$NewPublicIP = New-AzPublicIpAddress @PublicIPParameters -Verbose
+            #$VNICParameters.SubnetID = $NewVNet.Subnets[0].Id
+            #$VNICParameters.PublicIpAddressId = $NewPublicIP.Id
+            #$NewVNIC = New-AzNetworkInterface @VNICParameters -Verbose
+
         # Check to see if Resource Group already exists.
         # Only one VM should have a Public IP.
         #$ResouceGroupName.ResourceGroupName 

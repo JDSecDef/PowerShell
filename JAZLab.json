@@ -29,7 +29,7 @@
         },
     "JLab-StorageAccount":
         {
-            "Name": "JLab-StorageAccount",
+            "Name": "jlabstorageaccount",
             "ResourceGroupName": "JLab-RG",
             "Type": "Standard_LRS",
             "Location": "australiaeast"
@@ -42,10 +42,7 @@
     "JLab-VMParameters":
         {
             "Windows": "$true",
-            "ComputerName": "DC1",
-            "Credential": "(Get-Credential -Message 'Enter the name and password of the local administrator account.')",
-            "EnableAutoUpdate": "$true",
-            "VM": "$VMConfig"
+            "ComputerName": "DC1"
         },
     "JLab-ImageParamaters":
         {

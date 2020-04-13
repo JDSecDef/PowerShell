@@ -44,12 +44,10 @@
             "Windows": "$true",
             "ComputerName": "DC1"
         },
-    "JLab-ImageParamaters":
+    "JLab-ImageParameters":
         {
             "PublisherName": "MicrosoftWindowsServer",
             "Version": "Latest",
-            "Skus": "2012-R2-Datacenter",
-            "VM": "$VM",
-            "Offer": "$Offer.Offer"
+            "Skus": "2012-R2-Datacenter"
         }
 }

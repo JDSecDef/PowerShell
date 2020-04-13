@@ -158,6 +158,7 @@ function New-AZJLab {
                 #    Write-Verbose "Assigning Public IP Address $($PublicIPParameters.Name) to $($VMConfigParameters.VMName)"
                 #    $VNIC | Set-AzNetworkInterface
                 #}
+                # Test
 
                 # Check if storage account exists, if not create it.
                 # -whatif currently not working. 

@@ -1,5 +1,5 @@
 function New-AZJLab {
-<#
+    <#
 .SYNOPSIS
     Short description
 .DESCRIPTION
@@ -21,11 +21,11 @@ function New-AZJLab {
 .FUNCTIONALITY
     The functionality that best describes this cmdlet
 #>
-    [CmdletBinding(SupportsShouldProcess=$true)]
+    [CmdletBinding(SupportsShouldProcess = $true)]
     param (
         [Parameter(ValueFromPipeline = $true,
-        Mandatory = $true,
-        HelpMessage = 'Please provide a JSON file')]
+            Mandatory = $true,
+            HelpMessage = 'Please provide a JSON file')]
         [String]$FilePathJson
     )
     
@@ -33,19 +33,18 @@ function New-AZJLab {
         Set-Item Env:\SuppressAzurePowerShellBreakingChangeWarnings "true"
         $InformationPreference = "Continue"
         $Connection = Get-AzContext 
-        $OSDiskName = 'DC1Disk'
         $JsonFile = Get-Content $FilePathJson | ConvertFrom-Json
         $RGandLocation = $JsonFile.'JLab-RGandLocation' | ForEach-Object {
             $Key = $_ 
-            [hashtable] @{Name = $Key.Name
+            [hashtable] @{Name    = $Key.Name
                 ResourceGroupName = $Key.ResourceGroupName
-                Location = $Key.Location 
+                Location          = $Key.Location 
             }
         }
         $SubnetParameters = $JsonFile.'JLab-Subnet' | ForEach-Object {
             $Key = $_ 
-            [hashtable] @{Name    = $Key.Name 
-                AddressPrefix     = $Key.AddressPrefix
+            [hashtable] @{Name = $Key.Name 
+                AddressPrefix  = $Key.AddressPrefix
             }
         }
         $VNetParameters = $JsonFile.'JLab-VNet' | ForEach-Object {
@@ -81,8 +80,8 @@ function New-AZJLab {
         }
         $VMConfigParameters = $JsonFile.'JLab-VMConfig' | ForEach-Object {
             $Key = $_
-            [hashtable] @{VMName    = $Key.VMName
-                VMSize              = $Key.VMSize
+            [hashtable] @{VMName = $Key.VMName
+                VMSize           = $Key.VMSize
             }
         }
         $VMOSParameters = $JsonFile.'JLab-VMParameters' | ForEach-Object {
@@ -98,7 +97,12 @@ function New-AZJLab {
                 Skus                    = $Key.Skus
             }
         }
+        
+        # Investigate the below.
         $Offer = Get-AzVMImageOffer -Location $RGandLocation.Location -PublisherName 'MicrosoftWindowsServer' | Where-Object { $_.Offer -eq 'WindowsServer' }
+
+        # Set URI for the VHD for the Set-AZVMOSDisk cmdlet. 
+        $OSDiskName = $VMOSParameters.ComputerName + "Disk"
     } # BEGIN 
 
     PROCESS {
@@ -111,9 +115,10 @@ function New-AZJLab {
             } else {
                 Write-Verbose "$($Connection.Account.ID) is authenticated to Azure." 
             }
-
+            # Check if a VM already exists with the same name. 
             if (Get-AzVM -Name $VMConfigParameters.VMName -ResourceGroupName $RGandLocation.ResourceGroupName -ErrorAction Ignore) {
-                Write-Verbose "The Azure VM $($VMOSParameters.ComputerName) already exists. Exiting"
+                Write-Verbose "An Azure VM with the name $($VMOSParameters.ComputerName) in Resource Group $($RGandLocation.ResourceGroupName) already exists. Exiting"
+                return 
             } else {
 
                 # Check if Azure Resource Group already exists, if not create a new Azure Resource Group.
@@ -121,7 +126,7 @@ function New-AZJLab {
                     Write-Verbose "Creating Azure Resource Group with the name $($RGandLocation.ResourceGroupName) in $($RGandLocation.Location)"
                     $null = New-AzResourceGroup -Name $RGandLocation.ResourceGroupName -Location $RGandLocation.Location
                 } else {
-                    Write-Verbose "$($RGandLocation.ResourceGroupName) already exists"
+                    Write-Verbose "$($RGandLocation.ResourceGroupName) Resource Group already exists."
                 }
             
                 # Check if Virtual Network already exists, if not create it.     
@@ -131,7 +136,7 @@ function New-AZJLab {
                     Write-Verbose "Creating Virtual Network Name $($VNetParameters.Name)"
                     $NewVNet = New-AzVirtualNetwork @VNetParameters -Subnet $NewSubnet
                 } else {
-                    Write-Verbose "$($VNetParameters.Name) already exists"
+                    Write-Verbose "$($VNetParameters.Name) Virtual Network already exists."
                 }
 
                 # Check if public IP address exists, if not create it. 
@@ -139,7 +144,7 @@ function New-AZJLab {
                     Write-Verbose "Creating public IP address $($PublicIPParameters.Name)"
                     $NewPublicIP = New-AzPublicIpAddress @PublicIPParameters
                 } else {
-                    Write-Verbose "Public IP address $($PublicIPParameters.Name) already exists"
+                    Write-Verbose "$($PublicIPParameters.Name) Public IP Address already exists."
                 }
 
                 # Check if VNIC exists, if not create it. 
@@ -149,7 +154,7 @@ function New-AZJLab {
                     $VNICParameters.PublicIpAddressId = $NewPublicIP.Id
                     $NewVNIC = New-AzNetworkInterface @VNICParameters
                 } else {
-                    Write-Verbose "$($VNICParameters.Name) already exists"
+                    Write-Verbose "$($VNICParameters.Name) Virtual Network Interface already exists."
                 }  
 
                 #if ($VNIC = Get-AzNetworkInterface -Name $VNICParameters.Name -ResourceGroupName $RGandLocation.ResourceGroupName) {
@@ -158,7 +163,6 @@ function New-AZJLab {
                 #    Write-Verbose "Assigning Public IP Address $($PublicIPParameters.Name) to $($VMConfigParameters.VMName)"
                 #    $VNIC | Set-AzNetworkInterface
                 #}
-                # Test
 
                 # Check if storage account exists, if not create it.
                 # -whatif currently not working. 
@@ -167,13 +171,20 @@ function New-AZJLab {
                     Write-Verbose "Creating $($StorageAccountParameters.Name) storage account"
                     $NewStorageAccount = New-AzStorageAccount @StorageAccountParameters
                 } else {
-                    Write-Verbose "$($StorageAccountParameters.Name) already exists"
+                    Write-Verbose "$($StorageAccountParameters.Name) Storage Account already exists."
                 }
 
+                # Create the VM object in Azure. 
                 $NewVMConfig = New-AzVMConfig @VMConfigParameters
-                $VMOSParameters.Credential = Get-Credential -Message 'Enter the name and password the local administrator account:'
+
+                # Get the username and password for the local administrator account. 
+                $VMOSParameters.Credential = Get-Credential -Message 'Enter the name and password for the local administrator account:'
+                
+                # Set the operating system properties for the VM. 
                 $VMOSParameters.VM = $NewVMConfig
                 $NewVMOS = Set-AzVMOperatingSystem @VMOSParameters
+                
+                # Specify the platform image to use for the VM.
                 $VMImageParameters.VM = $NewVMOS
                 $VMImageParameters.Offer = $Offer.Offer
                 $NewVM = Set-AzVMSourceImage @VMImageParameters
@@ -183,6 +194,7 @@ function New-AZJLab {
                 # target for disk 'DC1Disk'.
                 Write-Verbose "Setting OSDISKURI"
                 $OSDiskURI = '{0}vhds/{1}{2}.vhd' -f $NewStorageAccount.PrimaryEndpoints.Blob.ToString(), $VMConfigParameters.Name, $OSDiskName
+                Write-Information $OSDiskURI
             
                 Write-Verbose "Setting OS Disk Properties for $($OSDiskName)"
                 $NewVM = Set-AzVMOSDisk -Name $OSDiskName -CreateOption 'fromimage' -VM $NewVM -VhdUri $OSDiskURI

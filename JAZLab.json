@@ -36,13 +36,13 @@
         },
     "JLab-VMConfig":
         {
-            "VMName": "JLab-DC1",
+            "VMName": "JLab-DC2",
             "VMSize": "Standard_B1ms"
         },
     "JLab-VMParameters":
         {
             "Windows": "$true",
-            "ComputerName": "DC1"
+            "ComputerName": "DC2"
         },
     "JLab-ImageParameters":
         {

@@ -16,14 +16,14 @@
             },
     "JLab-PubIP":
         {
-            "Name": "JLab-PubIP",
+            "Name": "JLab-PubIPDC2",
             "ResourceGroupName": "JLab-RG",
             "AllocationMethod": "Dynamic",
             "Location": "australiaeast"
         },
     "JLab-VNIC":
         {
-            "Name": "JLab-VNIC",
+            "Name": "JLab-VNICDC2",
             "ResourceGroupName": "JLab-RG",
             "Location": "australiaeast"
         },

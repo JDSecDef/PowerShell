@@ -21,6 +21,17 @@ function New-AZJLab {
 .FUNCTIONALITY
     The functionality that best describes this cmdlet
 #>
+
+<#
+    TODO
+    * AutoConnect Switch: Once VM is created run RDP and connect.
+    * RecreateVM Switch: If VM already exists, delete it and create a new one.
+    * PublicIP Switch: Create an IP Address and associate it or not. 
+    * Output details of created VM after it is created successfully.  
+    * Update help section. 
+    * Investigate moving the check if VM already exists to the begin statement. 
+#>
+
     [CmdletBinding(SupportsShouldProcess = $true)]
     param (
         [Parameter(ValueFromPipeline = $true,
@@ -139,6 +150,7 @@ function New-AZJLab {
 
     PROCESS {
             Try {    
+                
             # Check if a VM already exists with the same name. 
             if (Get-AzVM -Name $VMConfigParameters.VMName -ResourceGroupName $RGandLocation.ResourceGroupName -ErrorAction Ignore) {
                 Write-Verbose "An Azure VM with the name $($VMOSParameters.ComputerName) in Resource Group $($RGandLocation.ResourceGroupName) already exists. Exiting"
@@ -219,9 +231,6 @@ function New-AZJLab {
                 $VMImageParameters.Offer = $Offer.Offer
                 $NewVM = Set-AzVMSourceImage @VMImageParameters
 
-                # Check storage, will fail if storage already exists. ErrorCode: TargetDiskBlobAlreadyExists
-                # New-AzVM : Long running operation failed with status 'Failed'. Additional Info:'Blob https://jlabstorageaccount.blob.core.windows.net/vhds/DC1Disk.vhd already exists. Please provide a different blob URI as 
-                # target for disk 'DC1Disk'.
                 Write-Verbose "Setting OSDISKURI"
                 $OSDiskURI = '{0}vhds/{1}{2}.vhd' -f $NewStorageAccount.PrimaryEndpoints.Blob.ToString(), $VMConfigParameters.Name, $OSDiskName
             

@@ -116,8 +116,25 @@ function New-AZJLab {
         $OSDiskName = $VMOSParameters.ComputerName + "Disk"
 
         # Update variable name. 
-        $Test = Get-AzNetworkInterface -Name $VNICParameters.Name | Select-Object -Property VirtualMachine
+        $CheckVMNIC = Get-AzNetworkInterface -Name $VNICParameters.Name | Select-Object -Property VirtualMachine
 
+        # Retreive storage account key. 
+        Write-Verbose "Retrieving Storage Account Key for $($StorageAccountParameters.Name)"
+        $StorageKey = Get-AzStorageAccountKey -ResourceGroupName $RGandLocation.ResourceGroupName -AccountName $StorageAccountParameters.Name
+        $StorageContext = New-AzStorageContext -StorageAccountName $StorageAccountParameters.Name -StorageAccountKey $StorageKey.Value[1]
+        $StorageBlob = Get-AzStorageBlob -Context $StorageContext -Container vhds -ErrorAction Ignore
+                            
+        # Check if the OS Disk already exists.
+        # Check if there is a way to overwrite? 
+        $CheckOSDisk = $OSDiskName + '.vhd'
+        Write-Verbose "Checking if $CheckOSDisk already exists."
+        if ($StorageBlob.Name -contains $CheckOSDisk) {
+            Write-Error "$CheckOSDisk already exists. Exiting."
+            Return
+        }
+        else {
+            Write-Verbose "$CheckOSDisk does not exist. Proceeding."
+        }
 } # BEGIN 
 
     PROCESS {
@@ -165,8 +182,8 @@ function New-AZJLab {
                 }
 
                 # Check if VNIC already associated. 
-                if ($null -ne $Test.VirtualMachine.Id) {
-                        Write-Error "$($VNICParameters.Name) is already associated to $($Test.VirtualMachine.Id)"
+                if ($null -ne $CheckVMNIC.VirtualMachine.Id) {
+                        Write-Error "$($VNICParameters.Name) is already associated to $($CheckVMNIC.VirtualMachine.Id)"
                         return
                 }
 
@@ -191,7 +208,7 @@ function New-AZJLab {
                 $NewVMConfig = New-AzVMConfig @VMConfigParameters
 
                 # Get the username and password for the local administrator account. 
-                $VMOSParameters.Credential = Get-Credential -Message 'Enter the name and password for the local administrator account:'
+                $VMOSParameters.Credential = Get-Credential -Message 'Enter the name and password for the local administrator account.'
                 
                 # Set the operating system properties for the VM. 
                 $VMOSParameters.VM = $NewVMConfig

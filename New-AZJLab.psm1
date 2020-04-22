@@ -26,10 +26,11 @@ function New-AZJLab {
     TODO
     * AutoConnect Switch: Once VM is created run RDP and connect.
     * RecreateVM Switch: If VM already exists, delete it and create a new one.
-    * PublicIP Switch: Create an IP Address and associate it or not. 
-    * Output details of created VM after it is created successfully.  
+    * Update VM output details to include IP addresses. 
+    * Investigate the $offer line in the script. 
     * Update help section. 
-    * Investigate moving the check if VM already exists to the begin statement. 
+    * Investigate the storage not found error if the storage account was created in this function. 
+        # ErrorMessage: Storage account 'jlabstorageaccount' not found. Ensure storage account is not deleted and belongs to the same Azure location as the VM.
 #>
 
     [CmdletBinding(SupportsShouldProcess = $true)]
@@ -37,8 +38,13 @@ function New-AZJLab {
         [Parameter(ValueFromPipeline = $true,
             Mandatory = $true,
             HelpMessage = 'Please provide a JSON file')]
-        [String]$FilePathJson
-        # Set parameter for public IP address or not. if public IP address is set to $true. Multiple VMs at once, only one with pub IP.
+        [string]$FilePathJson,
+        [Parameter(Mandatory = $false)]
+        [switch]$SetPublicIP,
+        [Parameter(ValueFromPipeline = $true,
+            Mandatory = $false,
+            HelpMessage = "Set VM Powerstate to Stopped or Running")]
+        [string]$VMPowerState = 'Running'
     )
     
     BEGIN {
@@ -116,17 +122,22 @@ function New-AZJLab {
         if ($null -eq $Connection) {
             Write-Information "Please enter your Azure credentials"
             (Connect-AzAccount -ErrorAction Stop)
-        }else {
+        } else {
             Write-Verbose "$($Connection.Account.ID) is authenticated to Azure." 
         }
 
-        # Investigate this. 
+        # Check if a VM already exists with the same name. 
+        if (Get-AzVM -Name $VMConfigParameters.VMName -ResourceGroupName $RGandLocation.ResourceGroupName -ErrorAction Ignore) {
+            Write-Verbose "An Azure VM with the name $($VMOSParameters.ComputerName) in Resource Group $($RGandLocation.ResourceGroupName) already exists. Exiting"
+            exit
+        }
+
         $Offer = Get-AzVMImageOffer -Location $RGandLocation.Location -PublisherName 'MicrosoftWindowsServer' | Where-Object { $_.Offer -eq 'WindowsServer' }
 
         # Set URI for the VHD for the Set-AZVMOSDisk cmdlet. 
         $OSDiskName = $VMOSParameters.ComputerName + "Disk"
 
-        # Update variable name. 
+        # Check if the Virtual Network Interface is aready associated to another VM. 
         $CheckVMNIC = Get-AzNetworkInterface -Name $VNICParameters.Name | Select-Object -Property VirtualMachine
 
         # Retreive storage account key. 
@@ -136,12 +147,11 @@ function New-AZJLab {
         $StorageBlob = Get-AzStorageBlob -Context $StorageContext -Container vhds -ErrorAction Ignore
                             
         # Check if the OS Disk already exists.
-        # Check if there is a way to overwrite? 
         $CheckOSDisk = $OSDiskName + '.vhd'
         Write-Verbose "Checking if $CheckOSDisk already exists."
         if ($StorageBlob.Name -contains $CheckOSDisk) {
             Write-Error "$CheckOSDisk already exists. Exiting."
-            Return
+            exit
         }
         else {
             Write-Verbose "$CheckOSDisk does not exist. Proceeding."
@@ -150,12 +160,6 @@ function New-AZJLab {
 
     PROCESS {
             Try {    
-                
-            # Check if a VM already exists with the same name. 
-            if (Get-AzVM -Name $VMConfigParameters.VMName -ResourceGroupName $RGandLocation.ResourceGroupName -ErrorAction Ignore) {
-                Write-Verbose "An Azure VM with the name $($VMOSParameters.ComputerName) in Resource Group $($RGandLocation.ResourceGroupName) already exists. Exiting"
-                return 
-            } else {
 
                 # Check if Azure Resource Group already exists, if not create a new Azure Resource Group.
                 if (-not (Get-AzResourceGroup -name $RGandLocation.ResourceGroupName -Location $RGandLocation.Location -ErrorAction Ignore)) {
@@ -176,11 +180,14 @@ function New-AZJLab {
                 }
 
                 # Check if public IP address exists, if not create it. 
-                if (-not ($NewPublicIP = Get-AzPublicIpAddress -Name $PublicIPParameters.Name -ResourceGroupName $PublicIPParameters.ResourceGroupName -ErrorAction Ignore)) {
-                    Write-Verbose "Creating public IP address $($PublicIPParameters.Name)"
-                    $NewPublicIP = New-AzPublicIpAddress @PublicIPParameters
-                } else {
-                    Write-Verbose "$($PublicIPParameters.Name) Public IP Address already exists."
+                if ($SetPublicIP) {
+                    if (-not ($NewPublicIP = Get-AzPublicIpAddress -Name $PublicIPParameters.Name -ResourceGroupName $PublicIPParameters.ResourceGroupName -ErrorAction Ignore)) {
+                        Write-Verbose "Creating public IP address $($PublicIPParameters.Name)"
+                        $NewPublicIP = New-AzPublicIpAddress @PublicIPParameters
+                    }
+                    else {
+                        Write-Verbose "$($PublicIPParameters.Name) Public IP Address already exists."
+                    }
                 }
 
                 # Check if VNIC exists, if not create it. 
@@ -199,12 +206,14 @@ function New-AZJLab {
                         return
                 }
 
-                # Attempting to associate public IP address with VM. 
-                $VNIC = Get-AzNetworkInterface -Name $VNICParameters.Name -ResourceGroupName $RGandLocation.ResourceGroupName
-                $PubIP = Get-AzPublicIpAddress -Name $PublicIPParameters.Name -ResourceGroupName $RGandLocation.ResourceGroupName
-                $SetIPConfig = $VNIC | Set-AzNetworkInterfaceIpConfig -Name $VNIC.IpConfigurations.Name -PublicIpAddress $PubIP -Subnet $NewSubnet
-                Write-Verbose "Assigning public IP address $($PublicIPParameters.Name) to virtual machine $($VMConfigParameters.VMName)."
-                $SetNIC = $VNIC | Set-AzNetworkInterface
+                if ($SetPublicIP) {
+                    # Attempting to associate public IP address with VM. 
+                    $VNIC = Get-AzNetworkInterface -Name $VNICParameters.Name -ResourceGroupName $RGandLocation.ResourceGroupName
+                    $PubIP = Get-AzPublicIpAddress -Name $PublicIPParameters.Name -ResourceGroupName $RGandLocation.ResourceGroupName
+                    $SetIPConfig = $VNIC | Set-AzNetworkInterfaceIpConfig -Name $VNIC.IpConfigurations.Name -PublicIpAddress $PubIP -Subnet $NewSubnet
+                    Write-Verbose "Assigning public IP address $($PublicIPParameters.Name) to virtual machine $($VMConfigParameters.VMName)."
+                    $SetNIC = $VNIC | Set-AzNetworkInterface
+                }
                 
                 # Check if storage account exists, if not create it.
                 # -whatif currently not working. 
@@ -237,24 +246,30 @@ function New-AZJLab {
                 Write-Verbose "Setting OS Disk Properties for $($OSDiskName)"
                 $NewVM = Set-AzVMOSDisk -Name $OSDiskName -CreateOption 'fromimage' -VM $NewVM -VhdUri $OSDiskURI
             
+                # Add the Virtual Network Interface to the $NewVM variable. 
                 Write-Verbose "Adding VNIC $($VNICParameters.Name) to virtual machine $($VMOSParameters.ComputerName)."
                 $NewVM = Add-AzVMNetworkInterface -VM $NewVM -Id $NewVNIC.Id
 
-                # ErrorMessage: Storage account 'jlabstorageaccount' not found. Ensure storage account is not deleted and belongs to the same Azure location as the VM.
-                # ErrorCode: StorageAccountNotFound
+                # Create VM
                 Write-Verbose "Creating VM $($VMOSParameters.ComputerName)"
-                New-AzVM -VM $NewVM -ResourceGroupName $RGandLocation.ResourceGroupName -Location $RGandLocation.Location
+                $CreatVM = New-AzVM -VM $NewVM -ResourceGroupName $RGandLocation.ResourceGroupName -Location $RGandLocation.Location
 
-                # check if successful, if successful output VM details. 
+                # If $VMPowerState is set to Stopped, change the powerstate of the VM to stopped. 
+                if ($VMPowerState -eq 'Stopped') {
+                    Write-Verbose "Setting powerstate for $VMConfigParameters.VMName to stopped"
+                    Stop-AzVM -ResourceGroupName $RGandLocation.ResourceGroupName -Name $VMConfigParameters.VMName
+                }
 
-            } # else
+                # Retrieve VM Details
+                $VMDetails = Get-AzVM -ResourceGroupName $RGandLocation.ResourceGroupName -Name $VMConfigParameters.VMName -Status
+                Write-Verbose "$($VMDetails.Statuses[0].DisplayStatus) for VM $($VMDetails.Name) and it's current status is $($VMDetails.Statuses[1].DisplayStatus)"
+
             } # try
             catch { 
                 # [System.ApplicationException]
                 "ERROR: $_"
                 #[Microsoft.Azure.Commands.Profile.ConnectAzureRmAccountCommand]
                 #[Microsoft.Azure.Commands.Compute.Models.PSVirtualMachine]
-                #Write-Information "`nYou failed to authenticate to Azure."
             } # catch
             finally {
             } # finally

@@ -24,27 +24,30 @@ function New-AZJLab {
 
 <#
     TODO
-    * AutoConnect Switch: Once VM is created run RDP and connect.
-    * RecreateVM Switch: If VM already exists, delete it and create a new one.
+    * AutoConnect Switch: Once VM is created run RDP and connect. Start-Process mstsc.exe -ArgumentList "/v:10.10.10.10"
+    * RecreateVM Switch: Public IP Address removal? 
     * Update VM output details to include IP addresses. 
+    * Add password requirement details to Get-Credential. 
     * Investigate the $offer line in the script. 
     * Update help section. 
+    * For storage context you have to check if the storage account exists first.
     * Investigate the storage not found error if the storage account was created in this function. 
         # ErrorMessage: Storage account 'jlabstorageaccount' not found. Ensure storage account is not deleted and belongs to the same Azure location as the VM.
 #>
 
     [CmdletBinding(SupportsShouldProcess = $true)]
     param (
-        [Parameter(ValueFromPipeline = $true,
-            Mandatory = $true,
+        [Parameter(Mandatory = $true,
             HelpMessage = 'Please provide a JSON file')]
         [string]$FilePathJson,
         [Parameter(Mandatory = $false)]
         [switch]$SetPublicIP,
-        [Parameter(ValueFromPipeline = $true,
-            Mandatory = $false,
-            HelpMessage = "Set VM Powerstate to Stopped or Running")]
-        [string]$VMPowerState = 'Running'
+        [Parameter(Mandatory = $false,
+            HelpMessage = 'Set VM Powerstate to Stopped or Running')]
+        [string]$VMPowerState = 'Running',
+        [Parameter(Mandatory = $false,
+            HelpMessage = 'This recreates a VM and its vhd if it already exists.')]
+        [Switch]$RecreateVM
     )
     
     BEGIN {
@@ -127,9 +130,20 @@ function New-AZJLab {
         }
 
         # Check if a VM already exists with the same name. 
-        if (Get-AzVM -Name $VMConfigParameters.VMName -ResourceGroupName $RGandLocation.ResourceGroupName -ErrorAction Ignore) {
-            Write-Verbose "An Azure VM with the name $($VMOSParameters.ComputerName) in Resource Group $($RGandLocation.ResourceGroupName) already exists. Exiting"
+        $CheckVM = Get-AzVM -Name $VMConfigParameters.VMName -ResourceGroupName $RGandLocation.ResourceGroupName -ErrorAction Ignore
+        if ($CheckVM.Name -eq $VMConfigParameters.VMName -and $RecreateVM) {
+            Write-Verbose "Recreating $($VMOSParameters.ComputerName) in Resource Group $($RGandLocation.ResourceGroupName)."
+            $BuildVM = $true
+        }
+        elseif ($null -eq $CheckVM.Name -and $RecreateVM) {
+            Write-Verbose "$($VMConfigParameters.VMName) does not exist and the RecreateVM Switch is set. Try running module without the RecreateVM Switch. Exiting."
             exit
+        }
+        elseif ($CheckVM.Name -eq $VMConfigParameters.VMName -and $RecreateVM -eq $false) {
+            Write-Verbose "An Azure VM with the name $($VMOSParameters.ComputerName) in Resource Group $($RGandLocation.ResourceGroupName) already exists. Exiting."
+            exit
+        } else {
+            Write-Verbose "A VM with the name $($VMConfigParameters.VMName) will be created in $($VMOSParameters.ComputerName) Resource Group."
         }
 
         $Offer = Get-AzVMImageOffer -Location $RGandLocation.Location -PublisherName 'MicrosoftWindowsServer' | Where-Object { $_.Offer -eq 'WindowsServer' }
@@ -138,7 +152,24 @@ function New-AZJLab {
         $OSDiskName = $VMOSParameters.ComputerName + "Disk"
 
         # Check if the Virtual Network Interface is aready associated to another VM. 
-        $CheckVMNIC = Get-AzNetworkInterface -Name $VNICParameters.Name | Select-Object -Property VirtualMachine
+        $CheckVMNIC = Get-AzNetworkInterface -Name $VNICParameters.Name | Select-Object -Property VirtualMachine -ErrorAction Ignore
+        if ($null -ne $CheckVMNIC.VirtualMachine.Id -and $RecreateVM -eq $false) {
+            Write-Verbose "$($VNICParameters.Name) is already associated to $($CheckVMNIC.VirtualMachine.Id). VM will not be created. Exiting."
+            exit
+        }
+
+        # Check Public IP Address. 
+        $PubIPCheck = Get-AzPublicIpAddress -Name $PublicIPParameters.Name -ResourceGroupName $RGandLocation.ResourceGroupName -ErrorAction Ignore
+        if ($PubIPCheck.Name -eq $PublicIPParameters.Name -and $RecreateVM) {
+            Write-Verbose "$($PubIPCheck.Name) will be recreated."
+        }
+        elseif ($null -eq $PubIPCheck -and $RecreateVM) {
+            Write-Verbose "$($PubIPCheck.Name) does not exist and the RecreateVM Switch is set. Try running module without the RecreateVM Switch. Exiting."
+            exit
+        } 
+        elseif ($SetPublicIP) {
+            Write-Verbose "$($PubIPCheck.Name) Public IP Address will be created and associated to $($VMConfigParameters.VMName)."
+        }
 
         # Retreive storage account key. 
         Write-Verbose "Retrieving Storage Account Key for $($StorageAccountParameters.Name)"
@@ -149,17 +180,55 @@ function New-AZJLab {
         # Check if the OS Disk already exists.
         $CheckOSDisk = $OSDiskName + '.vhd'
         Write-Verbose "Checking if $CheckOSDisk already exists."
-        if ($StorageBlob.Name -contains $CheckOSDisk) {
-            Write-Error "$CheckOSDisk already exists. Exiting."
+        if ($StorageBlob.Name -contains $CheckOSDisk -and $RecreateVM) {
+            Write-Verbose "Recreating $CheckOSDisk."
+            $BuildVM = $true
+        }
+        elseif ($StorageBlob.Name -contains $CheckOSDisk -and $RecreateVM -eq $false) {
+            Write-Verbose "$CheckOSDisk already exists. Exiting."
             exit
         }
-        else {
-            Write-Verbose "$CheckOSDisk does not exist. Proceeding."
+        elseif ($Null -eq $StorageBlob.Name -and $RecreateVM) {
+            Write-Verbose "$($StorageBlob.Name) does not exist and the RecreateVM Switch is set. Try running module without the RecreateVM Switch. Exiting."
+            exit
+        } else {
+            Write-Verbose "$CheckOSDisk will be created."
         }
+
 } # BEGIN 
 
     PROCESS {
             Try {    
+
+                if ($BuildVM) {
+                    $GetVM = Get-AzVM -ResourceGroupName $RGandLocation.ResourceGroupName -Name $VMConfigParameters.VMName
+
+                    # Set VM powerstate to stopped. 
+                    Write-Verbose "Stopping VM."
+                    Stop-AzVM -ResourceGroupName $RGandLocation.ResourceGroupName -Name $VMConfigParameters.VMName -Force -ErrorAction Ignore
+
+                    # Remove network interface from VM. 
+                    Write-Verbose "Removing VMNetwork Interface."
+                    Remove-AzVMNetworkInterface -VM $GetVM -NetworkInterfaceIDs $VNICParameters.Name -ErrorAction Ignore
+
+                    # Remove VM. 
+                    Write-Verbose "Deleting VM $($VMConfigParameters.VMName) from Resource Group $($RGandLocation.ResourceGroupName)."
+                    Remove-AzVM -ResourceGroupName $RGandLocation.ResourceGroupName -Name $VMConfigParameters.VMName -Force
+                    Write-Verbose "Waiting 120 Seconds for VM deletion to occur."
+                    Start-Sleep -Seconds 120
+
+                    # Remove OS Disk. 
+                    Write-Verbose "Deleting $CheckOSDisk from container vhds."
+                    Remove-AzStorageBlob -Context $StorageContext -Container vhds -Blob $CheckOSDisk -Force
+
+                    # Remove Network Interface. 
+                    Write-Verbose "Deleting $($VNICParameters.Name) VNIC from $($VMConfigParameters.VMName)"
+                    Remove-AzNetworkInterface -Name $VNICParameters.Name -ResourceGroupName $RGandLocation.ResourceGroupName -Force
+
+                    # Remove Public IP Address. 
+                    Write-Verbose "Deleting Public IP $PubIPCheck.Name."
+                    Remove-AzPublicIpAddress -Name $PubIPCheck.Name -ResourceGroupName $RGandLocation -Force -ErrorAction Ignore
+                }
 
                 # Check if Azure Resource Group already exists, if not create a new Azure Resource Group.
                 if (-not (Get-AzResourceGroup -name $RGandLocation.ResourceGroupName -Location $RGandLocation.Location -ErrorAction Ignore)) {
@@ -198,12 +267,6 @@ function New-AZJLab {
                     $NewVNIC = New-AzNetworkInterface @VNICParameters
                 } else {
                     Write-Verbose "$($VNICParameters.Name) Virtual Network Interface already exists."
-                }
-
-                # Check if VNIC already associated. 
-                if ($null -ne $CheckVMNIC.VirtualMachine.Id) {
-                        Write-Error "$($VNICParameters.Name) is already associated to $($CheckVMNIC.VirtualMachine.Id)"
-                        return
                 }
 
                 if ($SetPublicIP) {
@@ -256,8 +319,8 @@ function New-AZJLab {
 
                 # If $VMPowerState is set to Stopped, change the powerstate of the VM to stopped. 
                 if ($VMPowerState -eq 'Stopped') {
-                    Write-Verbose "Setting powerstate for $VMConfigParameters.VMName to stopped"
-                    Stop-AzVM -ResourceGroupName $RGandLocation.ResourceGroupName -Name $VMConfigParameters.VMName
+                    Write-Verbose "Setting powerstate for $($VMConfigParameters.VMName) to stopped"
+                    Stop-AzVM -ResourceGroupName $RGandLocation.ResourceGroupName -Name $VMConfigParameters.VMName -Force
                 }
 
                 # Retrieve VM Details

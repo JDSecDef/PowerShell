@@ -185,7 +185,7 @@ function New-AZJLab {
         }   
         
         # Retreive storage account key if storage account exists.
-        $CheckStorage = Get-AzStorageAccount -ResourceGroupName $RGandLocation.ResourceGroupName -Name $StorageAccountParameters.Name
+        $CheckStorage = Get-AzStorageAccount -ResourceGroupName $RGandLocation.ResourceGroupName -Name $StorageAccountParameters.Name -ErrorAction Ignore
         if ($CheckStorage) {
             Write-Verbose "Retrieving Storage Account Key for $($StorageAccountParameters.Name)."
             $StorageKey = Get-AzStorageAccountKey -ResourceGroupName $RGandLocation.ResourceGroupName -AccountName $StorageAccountParameters.Name

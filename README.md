@@ -1,2 +1,2 @@
 # PowerShell
-Random PowerShell scripts and modules. 
+Random PowerShell scripts and modules by JDSecDef.

@@ -1,43 +1,45 @@
 function New-AZJLab {
     <#
 .SYNOPSIS
-    Creates an Azure VM and all the prerequisites such as the Resource Group, Virtual Network, Virtual Network Interface, Storage Account and OS Disk. 
+    Creates an Azure Virtual Machine and all the prerequisites including the Resource Group, Virtual Network, Public IP Address (optional), Virtual Network Interface, Storage Account and OS Disk. Retrieves the configuration details for the Azure environment from a JSON file.
+
 .DESCRIPTION
-    The New-AZLab function gets the contents of a JSON file and creates an Azure Virtual Machine and all of its prerequisites including,
-    the Resource Group, Virtual Network, Virtual Network Interface, Storage Account and OS Disk.
+    The New-AZLab function retrieves the contents of a JSON file and creates an Azure Virtual Machine and all of its prerequisites including, the Resource Group, Virtual Network, Virtual Network Interface, Storage Account and OS Disk. It can also create an optional Public IP address and has parameters for recreating existing virtual machines, creating a Public IP Address and automatically connecting to the Azure Virtual Machine when it has been created. 
+
 .PARAMETER JSONFilePath
-    Provide the filepath for the JSON file. 
+    The JSONFilePath Parameter is the filepath to the JSON file with the Azure lab configuration details. 
+
 .PARAMETER SetPublicIP
-    The SetPublicIP switch configures the VM with a public IP Address. 
+    The SetPublicIP Switch configures the Azure Virtual Machine with a Public IP Address that is dynamically assigned. 
+
 .PARAMETER PowerState
-    The PowerState Parameter sets the state of the VM after it is created to either Running or Stopped. 
+    The PowerState Parameter sets the state of the Azure Virtual Machine after it is created to either Running or Stopped, Running is the default value. 
+
 .PARAMETER RecreateVM
-    The RecreateVM switch will recreate an existing Azure virtual machine if one already exists with the same name. It will also recreate the virtual network interface
-    and the disk assigned to the virtual machine. 
+    The RecreateVM Switch will recreate an existing Azure Virtual Machine if one already exists with the same name. It also recreates the Virtual Network Interface, Public IP Address (optional) and the storage disk assigned.
+    
 .PARAMETER AutoConnect
-    The AutoConnect and SetPublicIP switch parameters are provided will start mstsc.exe at the conclusion of the function and connect you to the new Azure virtual machine. 
+    The AutoConnect switch parameter will start mstsc.exe at the conclusion of the function and connect you to the new Azure Virtual Machine if the virtual machine has a Public IP Address associated to it. 
+
 .EXAMPLE
     New-AZLab C:\Lab.json -Verbose
-        1: Create an Azure virtual machine and all its prerequisitess
+    Create an Azure Virtual Machine and all the prerequisites using the configuration settings from the json file. 
     This command will take the contents of the JSON file and create a new Azure Resource Group, Storage Account, Virtual Network, Virtual Network Interface, the OS disk and
     the virtual machine. 
+
 .EXAMPLE 
-    New-AZLab C:\Lab.json -RecreateVM -SetPublicIP -Verbose 
-    2: Recreate an existing Azure virtual machine and configure a public IP address
-    This command will recreate an existing Azure virtual machine with the same name and configure a public IP address. The virtual network interface, pu
-    Another example of how to use this cmdlet
-.INPUTS
-    Inputs to this cmdlet (if any)
-.OUTPUTS
-    Output from this cmdlet (if any)
+    New-AZLab C:\Lab.json -RecreateVM -PowerState Stopped -Verbose 
+    Recreate an existing Azure Virtual Machine and set its powerstate to stopped. 
+    This command will recreate an existing Azure Virtual Machine and set its powerstate to stopped. 
+
+.EXAMPLE
+    New-AZLab C:\Lab.json -SetPublicIC -AutoConnect -Verbose
+    Create an Azure Virtual Machine with a Public IP Address which is dynamically assigned and connect via mstsc.exe when the Azure Virtual Machine has been created. 
+
 .NOTES
-    General notes
-.COMPONENT
-    The component this cmdlet belongs to
-.ROLE
-    The role this cmdlet belongs to
-.FUNCTIONALITY
-    The functionality that best describes this cmdlet
+    Author:         JDSecDef
+    Version:        1.0.0.0
+    Last Updated:   26/04/2020
 #>
 
     [CmdletBinding(SupportsShouldProcess = $true)]

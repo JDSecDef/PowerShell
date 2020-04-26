@@ -6,7 +6,7 @@ function New-AZJLab {
     The New-AZLab function gets the contents of a JSON file and creates an Azure Virtual Machine and all of its prerequisites including,
     the Resource Group, Virtual Network, Virtual Network Interface, Storage Account and OS Disk.
 .PARAMETER JSONFilePath
-    Provide a JSON file for the function. 
+    Provide the filepath for the JSON file. 
 .PARAMETER SetPublicIP
     The SetPublicIP switch configures the VM with a public IP Address. 
 .PARAMETER PowerState
@@ -22,7 +22,7 @@ function New-AZJLab {
     This command will take the contents of the JSON file and create a new Azure Resource Group, Storage Account, Virtual Network, Virtual Network Interface, the OS disk and
     the virtual machine. 
 .EXAMPLE 
-    New-AZLab -RecreateVM -SetPublicIP -Verbose 
+    New-AZLab C:\Lab.json -RecreateVM -SetPublicIP -Verbose 
     2: Recreate an existing Azure virtual machine and configure a public IP address
     This command will recreate an existing Azure virtual machine with the same name and configure a public IP address. The virtual network interface, pu
     Another example of how to use this cmdlet
@@ -351,22 +351,22 @@ function New-AZJLab {
                 $GetVNIC = Get-AzNetworkInterface -Name $VNICParameters.Name
                 If ($SetPublicIP) {
                     $GetPubIP = Get-AzPublicIpAddress -Name $PublicIPParameters.Name -ResourceGroupName $RGandLocation.ResourceGroupName
-                    $Props = [PSCustomObject]@{
+                    $VMProperties = [PSCustomObject]@{
                         'Result'                = $VMDetails.Statuses[0].DisplayStatus
                         'VMName'                = $VMDetails.Name
                         'Powerstate'            = $VMDetails.Statuses[1].DisplayStatus
                         'PrivateNetworkAddress' = $GetVNIC.IpConfigurations.PrivateIPaddress
                         'PublicIPAddress'       = $GetPubIP.IpAddress
                     }
-                    Write-Information ($Props | Format-List | Out-String)
+                    Write-Information ($VMProperties | Format-List | Out-String)
                 } else {
-                        $Props = [PSCustomObject]@{
+                        $VMProperties = [PSCustomObject]@{
                             'Result'                = $VMDetails.Statuses[0].DisplayStatus
                             'VMName'                = $VMDetails.Name
                             'Powerstate'            = $VMDetails.Statuses[1].DisplayStatus
                             'PrivateNetworkAddress' = $GetVNIC.IpConfigurations.PrivateIPaddress
                         }
-                        Write-Information ($Props | Format-List | Out-String)
+                        Write-Information ($VMProperties | Format-List | Out-String)
                     }
                 
                 if ($AutoConnect -and $SetPublicIP -and $VMDetails.Statuses[1].DisplayStatus -eq 'VM Running') {
@@ -379,6 +379,7 @@ function New-AZJLab {
                 elseif ($AutoConnect -and $null -eq $SetPublicIP) {
                     Write-Verbose "No public IP Address exists for $($VMDetails.Name), unable to connect via RDP."
                 }
+
             } # try
             catch { 
                 "ERROR: $_"

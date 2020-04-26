@@ -1,12 +1,30 @@
 function New-AZJLab {
     <#
 .SYNOPSIS
-    Short description
+    Creates an Azure VM and all the prerequisites such as the Resource Group, Virtual Network, Virtual Network Interface, Storage Account and OS Disk. 
 .DESCRIPTION
-    Long description
+    The New-AZLab function gets the contents of a JSON file and creates an Azure Virtual Machine and all of its prerequisites including,
+    the Resource Group, Virtual Network, Virtual Network Interface, Storage Account and OS Disk.
+.PARAMETER JSONFilePath
+    Provide a JSON file for the function. 
+.PARAMETER SetPublicIP
+    The SetPublicIP switch configures the VM with a public IP Address. 
+.PARAMETER PowerState
+    The PowerState Parameter sets the state of the VM after it is created to either Running or Stopped. 
+.PARAMETER RecreateVM
+    The RecreateVM switch will recreate an existing Azure virtual machine if one already exists with the same name. It will also recreate the virtual network interface
+    and the disk assigned to the virtual machine. 
+.PARAMETER AutoConnect
+    The AutoConnect and SetPublicIP switch parameters are provided will start mstsc.exe at the conclusion of the function and connect you to the new Azure virtual machine. 
 .EXAMPLE
-    Example of how to use this cmdlet
-.EXAMPLE
+    New-AZLab C:\Lab.json -Verbose
+        1: Create an Azure virtual machine and all its prerequisitess
+    This command will take the contents of the JSON file and create a new Azure Resource Group, Storage Account, Virtual Network, Virtual Network Interface, the OS disk and
+    the virtual machine. 
+.EXAMPLE 
+    New-AZLab -RecreateVM -SetPublicIP -Verbose 
+    2: Recreate an existing Azure virtual machine and configure a public IP address
+    This command will recreate an existing Azure virtual machine with the same name and configure a public IP address. The virtual network interface, pu
     Another example of how to use this cmdlet
 .INPUTS
     Inputs to this cmdlet (if any)
@@ -22,19 +40,11 @@ function New-AZJLab {
     The functionality that best describes this cmdlet
 #>
 
-<#
-    TODO
-    * Investigate the $offer line in the script. 
-    * Update help section. 
-    * Set static ip address like 10.0.0.10. Set pscustomobject to output private ip address. Update Json file.
-    * How to iterate through multiple JSON files. 
-#>
-
     [CmdletBinding(SupportsShouldProcess = $true)]
     param (
         [Parameter(Mandatory = $true,
             HelpMessage = 'Please provide a JSON file')]
-        [string]$FilePathJson,
+        [string]$JSONFilePath,
         [Parameter(Mandatory = $false)]
         [switch]$SetPublicIP,
         [Parameter(Mandatory = $false,
@@ -53,7 +63,7 @@ function New-AZJLab {
         Set-Item Env:\SuppressAzurePowerShellBreakingChangeWarnings "true"
         $InformationPreference = "Continue"
         $Connection = Get-AzContext 
-        $JsonFile = Get-Content $FilePathJson | ConvertFrom-Json
+        $JsonFile = Get-Content $JSONFilePath | ConvertFrom-Json
 
         # Create hashtables from JSON file. 
         $RGandLocation = $JsonFile.'JLab-RGandLocation' | ForEach-Object {
@@ -61,6 +71,12 @@ function New-AZJLab {
             [hashtable] @{Name    = $Key.Name
                 ResourceGroupName = $Key.ResourceGroupName
                 Location          = $Key.Location 
+            }
+        }
+        $Offers = $JsonFile.'JLab-Offers' | ForEach-Object {
+            $Key = $_
+            [hashtable] @{PublisherName  = $Key.PublisherName
+               Offer = $Key.Offer 
             }
         }
         $SubnetParameters = $JsonFile.'JLab-Subnet' | ForEach-Object {
@@ -146,8 +162,8 @@ function New-AZJLab {
             Write-Verbose "A VM with the name $($VMConfigParameters.VMName) will be created in $($RGandLocation.ResourceGroupName) Resource Group."
         }
 
-        # Investigate this. 
-        $Offer = Get-AzVMImageOffer -Location $RGandLocation.Location -PublisherName 'MicrosoftWindowsServer' | Where-Object { $_.Offer -eq 'WindowsServer' }
+        # Get the VMImage offer types. 
+        $Offer = Get-AzVMImageOffer -Location $RGandLocation.Location -PublisherName $Offers.PublisherName | Where-Object { $_.Offer -eq $Offers.offer }
 
         # Check if the Virtual Network Interface is aready associated to another VM. 
         $CheckVMNIC = Get-AzNetworkInterface -Name $VNICParameters.Name | Select-Object -Property VirtualMachine -ErrorAction Ignore
@@ -363,7 +379,6 @@ function New-AZJLab {
                 elseif ($AutoConnect -and $null -eq $SetPublicIP) {
                     Write-Verbose "No public IP Address exists for $($VMDetails.Name), unable to connect via RDP."
                 }
-
             } # try
             catch { 
                 "ERROR: $_"

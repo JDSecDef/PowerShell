@@ -3,6 +3,11 @@
         "ResourceGroupName": "JLab-RG",
         "Location": "australiaeast"
     },
+    "JLab-Offers":
+    {
+        "PublisherName": "MicrosoftWindowsServer",
+        "Offer": "WindowsServer"
+    },
     "JLab-Subnet": {
             "Name": "JLab-Subnet",
             "AddressPrefix": "10.0.0.0/24"

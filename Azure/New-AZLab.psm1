@@ -180,10 +180,6 @@ function New-AZJLab {
             Write-Verbose "Public IP Address $($PubIPCheck.Name) will be recreated."
             $RecreatePublicIP = $true
         }
-        #elseif ($null -eq $PubIPCheck -and $RecreateVM) {
-        #    Write-Verbose "$($PubIPCheck.Name) does not exist and the RecreateVM Switch is set. Try running module without the RecreateVM Switch. Exiting."
-        #    exit
-        #} 
         elseif ($SetPublicIP) {
             Write-Verbose "$($PublicIPParameters.Name) Public IP Address will be created and associated to $($VMConfigParameters.VMName)."
         }   
@@ -302,8 +298,6 @@ function New-AZJLab {
                 }
                 
                 # Check if storage account exists, if not create it.
-                # -whatif currently not working. 
-                # Storage account can take a while to be recgonised when creating VM. 5 minutes??
                 if (-not ($NewStorageAccount = (Get-AzStorageAccount).where( { $_.StorageAccountName -eq $StorageAccountParameters.Name }))) {
                     Write-Verbose "Creating $($StorageAccountParameters.Name) storage account."
                     $NewStorageAccount = New-AzStorageAccount @StorageAccountParameters
@@ -348,7 +342,7 @@ function New-AZJLab {
                     $StopVM = Stop-AzVM -ResourceGroupName $RGandLocation.ResourceGroupName -Name $VMConfigParameters.VMName -Force
                 }
 
-                # Retrieve VM Details and output results.
+                # Retrieve VM Details and output the results.
                 $VMDetails = Get-AzVM -ResourceGroupName $RGandLocation.ResourceGroupName -Name $VMConfigParameters.VMName -Status
                 $GetVNIC = Get-AzNetworkInterface -Name $VNICParameters.Name
                 If ($SetPublicIP) {
@@ -371,6 +365,7 @@ function New-AZJLab {
                         Write-Information ($VMProperties | Format-List | Out-String)
                     }
                 
+                # Start mstsc.exe and connect to the VM. 
                 if ($AutoConnect -and $SetPublicIP -and $VMDetails.Statuses[1].DisplayStatus -eq 'VM Running') {
                     Write-Verbose "Starting mstsc.exe and connecting to $($VMDetails.Name) on public IP address $($GetPubIP.IpAddress)."
                     Start-Process mstsc.exe -ArgumentList "/v:$($GetPubIP.IpAddress)"

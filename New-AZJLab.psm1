@@ -26,6 +26,8 @@ function New-AZJLab {
     TODO
     * Investigate the $offer line in the script. 
     * Update help section. 
+    * Set static ip address like 10.0.0.10. Set pscustomobject to output private ip address. Update Json file.
+    * How to iterate through multiple JSON files. 
 #>
 
     [CmdletBinding(SupportsShouldProcess = $true)]
@@ -85,9 +87,10 @@ function New-AZJLab {
         }
         $VNICParameters = $JsonFile.'JLab-VNIC' | ForEach-Object {
             $Key = $_
-            [hashtable] @{Name    = $Key.Name
-                ResourceGroupName = $Key.ResourceGroupName
-                Location          = $Key.Location
+            [hashtable] @{Name          = $Key.Name
+                ResourceGroupName       = $Key.ResourceGroupName
+                Location                = $Key.Location
+                PrivateIPaddress        = $Key.PrivateIPaddress
             }
         }
         $StorageAccountParameters = $JsonFile.'JLab-StorageAccount' | ForEach-Object {
@@ -264,12 +267,14 @@ function New-AZJLab {
                     Write-Verbose "Creating Virtual Network Interface $($VNICParameters.Name)."
                     $VNICParameters.SubnetId = $NewVNet.Subnets[0].Id
                     $VNICParameters.PublicIpAddressId = $NewPublicIP.Id
+                    $IPConfig = New-AzNetworkInterfaceIpConfig -Name "IPConfig1" -PrivateIpAddress $VNICParameters.PrivateIPaddress -SubnetID $NewVNet.Subnets[0].Id
+                    $VNICParameters.PrivateIPaddress = $IPConfig.PrivateIpAddress
                     $NewVNIC = New-AzNetworkInterface @VNICParameters
                 } else {
                     Write-Verbose "$($VNICParameters.Name) Virtual Network Interface already exists."
                 }
 
-                # Associate public IP address with VM. 
+                # Associate public IP address. 
                 if ($SetPublicIP) {
                     $VNIC = Get-AzNetworkInterface -Name $VNICParameters.Name -ResourceGroupName $RGandLocation.ResourceGroupName
                     $PubIP = Get-AzPublicIpAddress -Name $PublicIPParameters.Name -ResourceGroupName $RGandLocation.ResourceGroupName

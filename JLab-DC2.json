@@ -25,7 +25,9 @@
         {
             "Name": "JLab-VNICDC2",
             "ResourceGroupName": "JLab-RG",
-            "Location": "australiaeast"
+            "Location": "australiaeast",
+            "PrivateIPAddress": "10.0.0.20"
+
         },
     "JLab-StorageAccount":
         {

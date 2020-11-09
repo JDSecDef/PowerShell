@@ -16,6 +16,7 @@ function Test-IPRange {
 .OUTPUTS
     Output (if any)
 .NOTES
+    Author      : JDSecDef
     Version     : 1.0.0
     Last Updated: 9 November 2019
     #>

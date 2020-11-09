@@ -19,6 +19,7 @@ function Search-Filename {
     This will recursively search the C:\ for filenames containing the provided keywords.     
     
     .NOTES
+    Author      : JDSecDef
     Version     : 1.0.0
     Last Updated: 18 November 2019
     #>
